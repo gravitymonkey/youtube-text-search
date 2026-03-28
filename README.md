@@ -55,18 +55,13 @@ This will:
 - fetch transcripts
 - store them locally
 - index them for keyword search
+- build embeddings if `OPENAI_API_KEY` is set in `.env`
+If `OPENAI_API_KEY` is missing, `make full-pipeline` will stop with a clear message after keyword indexing and tell you how to enable embeddings.
 
-### 6. Search
-
-```bash
 make search QUERY="your search terms"
 ```
 
-Example:
-
-```bash
-make search QUERY="leadership"
-```
+If you want to see the exact JSON response shape for `search` and `answer`, see [RESPONSE.md](/Users/jason/dev/yt-text-search/RESPONSE.md).
 
 ### 7. Ask a question
 
@@ -143,12 +138,12 @@ Out of the box:
 ## Use the force, read the source; but if you just want to get going:
 
 ```bash
-git clone <repo-url>
+git clone https://github.com/gravitymonkey/youtube-text-search.git
 cd yt-text-search
 python3 -m venv .venv
 source .venv/bin/activate
-cp .env.example .env
-cp urls.example.txt urls.txt
+cp .env.example .env (edit .env to add your OPENAI_API_KEY for embeddings and RAG response)
+cp urls.example.txt urls.txt (edit urls.txt or use default latest BBC news)
 make bootstrap
 make full-pipeline URL_FILE=urls.txt
 make search QUERY="your search terms"

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import time
 from typing import Any
 from urllib import error, request
 
@@ -30,15 +31,39 @@ class MeilisearchClient:
             detail = exc.read().decode("utf-8", "ignore")
             raise RuntimeError(f"Meilisearch request failed: {exc.code} {detail}") from exc
 
+    def _wait_for_task(self, task_uid: int, *, timeout_seconds: float = 30.0) -> dict[str, Any]:
+        deadline = time.monotonic() + timeout_seconds
+        last_task: dict[str, Any] | None = None
+        while time.monotonic() < deadline:
+            task = self._request("GET", f"/tasks/{task_uid}")
+            last_task = task
+            status = task.get("status")
+            if status == "succeeded":
+                return task
+            if status == "failed":
+                error_detail = task.get("error", {})
+                raise RuntimeError(
+                    "Meilisearch task failed: "
+                    f"{error_detail.get('code', 'unknown')} "
+                    f"{error_detail.get('message', 'unknown error')}"
+                )
+            time.sleep(0.1)
+        raise RuntimeError(f"Timed out waiting for Meilisearch task {task_uid}: {last_task}")
+
     def ensure_index(self) -> None:
-        self._request(
+        response = self._request(
             "POST",
             "/indexes",
             {"uid": self.index_name, "primaryKey": "id"},
         )
+        try:
+            self._wait_for_task(response["taskUid"])
+        except RuntimeError as exc:
+            if "index_already_exists" not in str(exc):
+                raise
 
     def configure(self) -> None:
-        self._request(
+        response = self._request(
             "PATCH",
             f"/indexes/{self.index_name}/settings",
             {
@@ -73,9 +98,11 @@ class MeilisearchClient:
                 ],
             },
         )
+        self._wait_for_task(response["taskUid"])
 
     def add_documents(self, documents: list[dict[str, Any]]) -> None:
-        self._request("POST", f"/indexes/{self.index_name}/documents", documents)
+        response = self._request("POST", f"/indexes/{self.index_name}/documents", documents)
+        self._wait_for_task(response["taskUid"])
 
     def search(
         self, query: str, limit: int = 10, filters: str | None = None
@@ -112,11 +139,7 @@ class KeywordIndexer:
         return documents
 
     def index(self) -> int:
-        try:
-            self.client.ensure_index()
-        except RuntimeError as exc:
-            if "index_already_exists" not in str(exc):
-                raise
+        self.client.ensure_index()
         self.client.configure()
         documents = self.build_documents()
         if documents:

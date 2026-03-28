@@ -25,6 +25,17 @@ class TranscriptChunk:
     playlist_ids: list[str]
 
 
+def build_chunk_id(anchor: TranscriptSegment, *, index: int, before: int, after: int) -> str:
+    """Build a Meilisearch-safe chunk id for a rolling transcript window.
+
+    Meilisearch document ids may only contain alphanumeric characters, hyphens,
+    and underscores. The raw segment ids include ":" separators, so chunk ids
+    need their own safe format rather than reusing the original segment id.
+    """
+
+    return f"{anchor.video_id}_{anchor.start_seconds}_{index}_w{before}_{after}"
+
+
 def build_rolling_chunks(
     segments: list[TranscriptSegment], *, before: int, after: int
 ) -> list[TranscriptChunk]:
@@ -36,7 +47,12 @@ def build_rolling_chunks(
         text = " ".join(segment.text for segment in window_segments)
         chunks.append(
             TranscriptChunk(
-                chunk_id=f"{anchor.segment_id}|w{before}-{after}",
+                chunk_id=build_chunk_id(
+                    anchor,
+                    index=index,
+                    before=before,
+                    after=after,
+                ),
                 anchor_segment_id=anchor.segment_id,
                 video_id=anchor.video_id,
                 video_url=anchor.video_url,

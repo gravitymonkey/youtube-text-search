@@ -1,6 +1,7 @@
 from pathlib import Path
 
 from app.cache import CacheRepository
+from app.chunking import build_chunk_id
 from app.indexing.embeddings import SQLiteEmbeddingStore
 from app.models import SearchHit, TranscriptSegment, VideoMetadata
 from app.search.hybrid import SearchEngine
@@ -10,7 +11,7 @@ class FakeKeywordClient:
     def search(self, query: str, limit: int = 10, filters: str | None = None):
         return [
             {
-                "id": "abc123:0:0|w1-1",
+                "id": "abc123_0_0_w1_1",
                 "anchor_segment_id": "abc123:0:0",
                 "video_id": "abc123",
                 "video_url": "https://www.youtube.com/watch?v=abc123",
@@ -83,7 +84,7 @@ def test_hybrid_search_merges_and_expands_context(tmp_path: Path) -> None:
         "Chunk",
         (),
         {
-            "chunk_id": "abc123:0:0|w1-1",
+            "chunk_id": "abc123_0_0_w1_1",
             "anchor_segment_id": "abc123:0:0",
             "video_id": "abc123",
             "video_url": "https://www.youtube.com/watch?v=abc123",
@@ -118,3 +119,20 @@ def test_hybrid_search_merges_and_expands_context(tmp_path: Path) -> None:
     assert len(hits[0].window_segments) == 2
     assert hits[0].window_start_timestamp == "0:00"
     assert hits[0].window_end_timestamp == "0:05"
+
+
+def test_chunk_ids_are_meilisearch_safe() -> None:
+    segment = TranscriptSegment(
+        video_id="abc-123",
+        video_url="https://www.youtube.com/watch?v=abc123",
+        title="Demo",
+        channel="Channel",
+        segment_id="abc-123:42:7",
+        start_seconds=42,
+        start_timestamp="0:42",
+        text="demo",
+        source_run_at="2026-03-28T00:00:00+00:00",
+        playlist_ids=[],
+    )
+
+    assert build_chunk_id(segment, index=7, before=5, after=5) == "abc-123_42_7_w5_5"
