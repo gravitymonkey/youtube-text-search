@@ -146,5 +146,8 @@ cp .env.example .env (edit .env to add your OPENAI_API_KEY for embeddings and RA
 cp urls.example.txt urls.txt (edit urls.txt or use default latest BBC news)
 make bootstrap
 make full-pipeline URL_FILE=urls.txt
-make search QUERY="your search terms"
+make search QUERY="revolution" (or your search term)
 ```
+
+
+<img src="./screenshot.png" width=500 alt="example output">
