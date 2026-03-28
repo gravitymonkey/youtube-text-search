@@ -1,0 +1,5 @@
+# One YouTube video or playlist URL per line.
+# Blank lines and lines beginning with # are ignored.
+# Default starter playlist for the getting-started flow.
+# PLAYLIST_MAX_VIDEOS in .env limits how many videos are processed from this list.
+https://www.youtube.com/playlist?list=PLS3XGZxi7cBXc5taq0DkNtqMT8xhzl0zb

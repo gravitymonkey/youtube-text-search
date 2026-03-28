@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "yt-text-search"
+version = "0.1.0"
+description = "Local YouTube transcript ingestion and search engine"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.optional-dependencies]
+browser = ["playwright==1.52.0"]
+dev = ["pytest==8.3.5"]
+
+[project.scripts]
+yt-search = "app.cli:main"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
